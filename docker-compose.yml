@@ -1,0 +1,15 @@
+version: 3.1
+services: 
+  vrising:
+    container_name: vrising-server
+    image: syter/vrising-docker:latest
+    volumes: 
+      - vrising-data:/root/.wine/drive_c/users/root/AppData/LocalLow/Stunlock Studios/VRisingServer/
+    ports: 
+      - "27015:27015/udp"
+      - "27016:27016/udp"
+    restart: unless-stopped
+    tty: true
+volumes:
+  vrising-data:
+    external: false
