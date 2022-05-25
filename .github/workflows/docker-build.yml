@@ -35,7 +35,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PATH }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
