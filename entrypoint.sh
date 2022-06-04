@@ -45,9 +45,7 @@ echo "Starting V Rising Dedicated Server with name $VRisingHost_Name"
 echo "Trying to remove /tmp/.X0-lock"
 rm /tmp/.X0-lock 2>&1
 echo " "
-echo "Starting Xvfb"
-Xvfb :0 -screen 0 1024x768x16 &
 echo "Launching wine64 V Rising { Name: $VRisingHost_Name, Port: $VRisingHost_Port, QueryPort: $VRisingHost_QueryPort }"
 echo " "
-DISPLAY=:0.0 wine64 /mnt/vrising/server/VRisingServer.exe -persistentDataPath $data_path -serverName "$VRisingHost_Name" -saveName "$VRisingHost_SaveName" -logFile "$data_path/VRisingServer.log" "$VRisingHost_Port" "$VRisingHost_QueryPort" 2>&1
-/usr/bin/tail -f /mnt/vrising/persistentdata/VRisingServer.log
+Xvfb :0 -screen 0 1024x768x16 & DISPLAY=:0.0 wine64 "$server_path/VRisingServer.exe" -persistentDataPath $data_path -serverName "$VRisingHost_Name" -saveName "$VRisingHost_SaveName" -logFile "$data_path/VRisingServer.log" "$VRisingHost_Port" "$VRisingHost_QueryPort" 2>&1
+/usr/bin/tail -f "$data_path/VRisingServer.log"
