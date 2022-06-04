@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 LABEL maintainer="Duarte 'SyTeR' Brito"
 
-VOLUME ["/mnt/vrising/server", "/mnt/vrising/data"]
+VOLUME ["/mnt/vrising/server", "/mnt/vrising/data", "/root/.wine/drive_c/users/root/AppData/LocalLow/Stunlock\ Studios\VRisingServer"]
 
 ARG DEBIAN_FRONTEND="noninteractive"
 RUN apt update -y && \
