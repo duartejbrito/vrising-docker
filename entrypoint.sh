@@ -19,28 +19,28 @@ echo " "
 /usr/bin/steamcmd +force_install_dir "$server_path" +login anonymous +app_update 1829350 +quit
 echo "steam_appid: "`cat $server_path/steam_appid.txt`
 echo " "
-mkdir "$data_path/Saves" 2>/dev/null
+# mkdir "$data_path/Saves" 2>/dev/null
 mkdir "$data_path/Settings" 2>/dev/null
 if [ ! -f "$data_path/Settings/ServerHostSettings.json" ]; then
   echo "$data_path/Settings/ServerHostSettings.json not found. Copying default file."
   cp "$server_path/VRisingServer_Data/StreamingAssets/Settings/ServerHostSettings.json" "$data_path/Settings/" 2>&1
 fi
-for var in "${!VRisingHost_@}"; do
-  IFS='_' read -r -a path <<< "$var"
-  path=${path[@]:1}
-  echo "Overrinding Host setting .${path// /.}: ${!var}"
-  cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerHostSettings.json" ) > "$data_path/Settings/ServerHostSettings.json"
-done
+# for var in "${!VRisingHost_@}"; do
+#   IFS='_' read -r -a path <<< "$var"
+#   path=${path[@]:1}
+#   echo "Overrinding Host setting .${path// /.}: ${!var}"
+#   cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerHostSettings.json" ) > "$data_path/Settings/ServerHostSettings.json"
+# done
 if [ ! -f "$data_path/Settings/ServerGameSettings.json" ]; then
   echo "$data_path/Settings/ServerGameSettings.json not found. Copying default file."
   cp "$server_path/VRisingServer_Data/StreamingAssets/Settings/ServerGameSettings.json" "$data_path/Settings/" 2>&1
 fi
-for var in "${!VRisingGame_@}"; do
-  IFS='_' read -r -a path <<< "$var"
-  path=${path[@]:1}
-  echo "Overrinding Game setting .${path// /.}: ${!var}"
-  cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerGameSettings.json" ) > "$data_path/Settings/ServerGameSettings.json"
-done
+# for var in "${!VRisingGame_@}"; do
+#   IFS='_' read -r -a path <<< "$var"
+#   path=${path[@]:1}
+#   echo "Overrinding Game setting .${path// /.}: ${!var}"
+#   cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerGameSettings.json" ) > "$data_path/Settings/ServerGameSettings.json"
+# done
 cd "$server_path"
 echo "Starting V Rising Dedicated Server with name $VRisingHost_Name"
 echo "Trying to remove /tmp/.X0-lock"
