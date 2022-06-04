@@ -1,26 +1,41 @@
 FROM ubuntu:20.04
+LABEL maintainer="Duarte 'SyTeR' Brito"
 
-ENV DEBIAN_FRONTEND="noninteractive"
-ENV TZ="Europe/Lisbon"
+VOLUME ["/mnt/vrising/server", "/mnt/vrising/data"]
 
-RUN dpkg --add-architecture i386 \
-    && apt update \
-    && apt install -y wine64 wine32 wget unzip xvfb \
-    && mkdir -p /root/.wine/drive_c/steamcmd \
-    && mkdir -p /root/.wine/drive_c/users/root/AppData/LocalLow/'Stunlock Studios'/VRisingServer/Settings \
-    && wget https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -P /root/.wine/drive_c/steamcmd/ \
-    && cd /root/.wine/drive_c/steamcmd/ \
-    && unzip steamcmd.zip \
-    && mkdir -p /root/.wine/drive_c/VRisingServer/ \
-    && cd /root/.wine/drive_c/steamcmd 
+ARG DEBIAN_FRONTEND="noninteractive"
+RUN apt update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y  apt-utils && \
+    apt-get install -y  software-properties-common \
+                        tzdata && \
+    add-apt-repository multiverse && \
+    dpkg --add-architecture i386 && \
+    apt update -y && \
+    apt-get upgrade -y 
 
-COPY root .
+RUN useradd -m steam && cd /home/steam && \
+    echo steam steam/question select "I AGREE" | debconf-set-selections && \
+    echo steam steam/license note '' | debconf-set-selections && \
+    apt purge steam steamcmd && \
+    apt install -y gdebi-core  \
+                   libgl1-mesa-glx:i386 \
+                   wget && \
+    apt install -y steam \
+                   steamcmd && \
+    ln -s /usr/games/steamcmd /usr/bin/steamcmd    
 
-WORKDIR /scripts
+RUN apt install -y wine 
 
-RUN chmod +x ./run.sh
+RUN apt install -y xserver-xorg \
+                   xvfb
 
-EXPOSE 27015/udp
-EXPOSE 27016/udp
+RUN apt install -y jq
 
-CMD ./run.sh
+RUN rm -rf /var/lib/apt/lists/* && \
+    apt clean && \
+    apt autoremove -y
+
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]
