@@ -19,6 +19,7 @@ echo " "
 /usr/bin/steamcmd +force_install_dir "$server_path" +login anonymous +app_update 1829350 +quit
 echo "steam_appid: "`cat $server_path/steam_appid.txt`
 echo " "
+mkdir "$data_path/Saves" 2>/dev/null
 mkdir "$data_path/Settings" 2>/dev/null
 if [ ! -f "$data_path/Settings/ServerHostSettings.json" ]; then
   echo "$data_path/Settings/ServerHostSettings.json not found. Copying default file."
