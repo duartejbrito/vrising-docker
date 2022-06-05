@@ -16,8 +16,7 @@ main() {
 apply_permissions() {
   mkdir -p /root/.steam
   chmod -R 777 /root/.steam
-
-
+  
   info "Setting uid:gid of vrising to $PUID:$PGID"
   groupmod -g "${PGID}" -o vrising
   #usermod -u "${PUID}" -o -g valheim valheim
