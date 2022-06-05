@@ -1,0 +1,14 @@
+#!/bin/bash
+
+TZ=${TZ:-Etc/UTC}
+
+PUID=${PUID:-0}
+PGID=${PGID:-0}
+
+ServerName=${ServerName:-Syter VRising Server}
+WorldName=${WorldName:-world1}
+
+VRisingHost_Port=${VRisingHost_Port:-27015}
+VRisingHost_QueryPort=${VRisingHost_QueryPort:-27016}
+
+BEPINEX=${BEPINEX:-false}

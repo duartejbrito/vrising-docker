@@ -1,0 +1,140 @@
+#!/bin/bash
+
+server_path=/mnt/vrising/server
+data_path=/mnt/vrising/data
+
+# BepInEx Mod
+bepinex_updater=/usr/local/bin/bepinex-updater
+bepinex_download_path=$server_path/dl/bepinex    # BepInEx download directory
+# bepinex_install_path=/opt/valheim/bepinex        # BepInEx installation directory
+# bepinex_config_path="/config/bepinex"
+# bepinex_mergefile="$bepinex_download_path/merge" # Signaling file created by valheim-updater
+#                                                  # that tells bepinex-updater that Valheim
+#                                                  # server was updated and needs to be merged
+#                                                  # with BepInEx
+bepinex_zipfile=BepInEx.zip                      # Name of the BepInEx archive
+
+# log levels
+debug=50
+info=40
+warn=30
+error=20
+critical=10
+fatal=5
+log_level=${log_level:-$debug}
+
+debug()    { logstd $debug    "DEBUG - [$$] - $*"; }
+info()     { logstd $info     "INFO - $*"; }
+warn()     { logstd $warn     "WARN - $*"; }
+error()    { logerr $error    "ERROR - $*"; }
+critical() { logerr $critical "CRITICAL - $*"; }
+fatal()    { logerr $fatal    "FATAL - $*"; exit 1; }
+
+logstd() {
+  local log_at_level
+  log_at_level="$1"; shift
+  printline "$log_at_level" "$*"
+}
+
+logerr() {
+  local log_at_level
+  log_at_level="$1"; shift
+  printline "$log_at_level" "$*" >&2
+}
+
+printline() {
+  local log_at_level
+  local log_data
+  log_at_level="$1"; shift
+  log_data="$*"
+
+  if [ "$log_at_level" -le "$log_level" ]; then
+      echo "$log_data"
+  fi
+}
+
+check_for_mod_update() {
+  local download_url="$1"
+  local remote_updated_at="$2"
+  local zipfile="$3"
+  local download_path="$4"
+  local extraction_path="$5"
+  local install_path="$6"
+  local mod_name="$7"
+  local local_updated_at
+  local local_installed_at
+
+  mkdir -p "$download_path" "$install_path"
+  cd "$download_path" || fatal "Could not cd $download_path"
+  if [ -f "$zipfile" ] && [ -f "$zipfile.updated_at" ] && [ -f "$zipfile.installed_at" ]; then
+    local_updated_at=$(< "$zipfile.updated_at")
+    local_installed_at=$(< "$zipfile.installed_at")
+    if [ "$local_updated_at" = "$remote_updated_at" ] && [ "$local_updated_at" = "$local_installed_at" ]; then
+      debug "Local $mod_name archive is identical to remote archive and was successfully installed - no update required"
+    else
+      info "Local $mod_name archive with update date $local_updated_at differs from remote date $remote_updated_at or failed to successfully install - updating"
+      prepare_mod "$download_url" "$remote_updated_at" "$download_path/$zipfile"
+    fi
+  else
+    info "Fresh $mod_name install"
+    prepare_mod "$download_url" "$remote_updated_at" "$download_path/$zipfile"
+  fi
+
+  check_merge "$download_path" "$zipfile" "$install_path" "$extraction_path" "$mod_name"
+}
+
+prepare_mod() {
+  local download_url="$1"
+  local updated_at="$2"
+  local zipfile="$3"
+  download_mod "$download_url" "$updated_at" "$zipfile"
+}
+
+download_mod() {
+  local download_url="$1"
+  local updated_at="$2"
+  local download_path="$3"
+  debug "Downloading $download_url to $download_path"
+  curl -sfSL -o "$download_path" "$download_url" \
+    && echo "$updated_at" > "$download_path.updated_at"
+}
+
+check_merge() {
+    local download_path=$1
+    local zipfile=$2
+    local install_path=$3
+    local extraction_path=$4
+    local mod_name=$5
+
+    info "VRising dedicated server or $mod_name mod got updated - extracting and merging installation files"
+    (set -e; extract_archive "$download_path" "$zipfile" && merge_mod "$install_path" "$download_path/$extraction_path")
+    if [ $? -eq 0 ]; then
+      debug "Successfully installed $mod_name mod"
+      cp -f "$zipfile.updated_at" "$zipfile.installed_at"
+    else
+      error "Failed to extract and install $mod_name - retrying later"
+    fi
+}
+
+extract_archive() {
+  local archive_path="$1"
+  local archive_file="$2"
+  cd "$archive_path" || fatal "Could not cd $archive_path"
+  debug "Extracting downloaded ZIP archive"
+  rm -rf extracted
+  mkdir -p extracted
+  unzip -d extracted/ "$archive_file"
+}
+
+merge_mod() {
+  local mod_install_path="$1"
+  local mod_download_path="$2"
+
+  info "mod_install_path: $mod_install_path"
+  info "mod_download_path: $mod_download_path"
+
+  rsync -a --itemize-changes "$mod_download_path/" "$mod_install_path"
+  mkdir -p "$mod_install_path/BepInEx/plugins"
+
+  rm -rf "$mod_install_path/dl"
+}

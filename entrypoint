@@ -1,0 +1,97 @@
+#!/bin/bash
+
+. /usr/local/etc/vrising/defaults
+. /usr/local/etc/vrising/common
+
+main() {
+  apply_permissions
+  configure_timezone
+  install_vrising
+  handleHostSettings
+  handleGameSettings
+  handleBepinex
+  startServer
+}
+
+apply_permissions() {
+  mkdir -p /root/.steam
+  chmod -R 777 /root/.steam
+
+
+  info "Setting uid:gid of vrising to $PUID:$PGID"
+  groupmod -g "${PGID}" -o vrising
+  #usermod -u "${PUID}" -o -g valheim valheim
+  sed -i -E "s/^(vrising:x):[0-9]+:[0-9]+:(.*)/\\1:$PUID:$PGID:\\2/" /etc/passwd
+
+  mkdir "$data_path/Settings"
+
+  chown -R vrising:vrising \
+    /home/vrising
+}
+
+configure_timezone() {
+  export TZ
+  if [ ! -f "/usr/share/zoneinfo/$TZ" ]; then
+      warn "Unknown timezone $TZ - defaulting to Etc/UTC"
+      TZ="Etc/UTC"
+  fi
+  ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
+  echo "$TZ" > /etc/timezone
+  dpkg-reconfigure -f noninteractive tzdata
+  info "Setting timezone $TZ"
+}
+
+install_vrising() {
+  info "Updating V-Rising Dedicated Server files..."
+  /usr/bin/steamcmd +force_install_dir "$server_path" +login anonymous +app_update 1829350 +quit
+  echo "steam_appid: "`cat $server_path/steam_appid.txt`
+}
+
+handleHostSettings() {
+  if [ ! -f "$data_path/Settings/ServerHostSettings.json" ]; then
+    echo "$data_path/Settings/ServerHostSettings.json not found. Copying default file."
+    cp "$server_path/VRisingServer_Data/StreamingAssets/Settings/ServerHostSettings.json" "$data_path/Settings/"
+  fi
+  for var in "${!VRisingHost_@}"; do
+    IFS='_' read -r -a path <<< "$var"
+    path=${path[@]:1}
+    echo "Overrinding Host setting .${path// /.}: ${!var}"
+    cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerHostSettings.json" ) > "$data_path/Settings/ServerHostSettings.json"
+  done
+}
+
+handleGameSettings() {
+  if [ ! -f "$data_path/Settings/ServerGameSettings.json" ]; then
+    echo "$data_path/Settings/ServerGameSettings.json not found. Copying default file."
+    cp "$server_path/VRisingServer_Data/StreamingAssets/Settings/ServerGameSettings.json" "$data_path/Settings/"
+  fi
+  for var in "${!VRisingGame_@}"; do
+    IFS='_' read -r -a path <<< "$var"
+    path=${path[@]:1}
+    echo "Overrinding Game setting .${path// /.}: ${!var}"
+    cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/ServerGameSettings.json" ) > "$data_path/Settings/ServerGameSettings.json"
+  done
+}
+
+handleBepinex() {
+  info "Handling Bepinex"
+  if [ "$BEPINEX" = true ]; then
+    "$bepinex_updater"
+  fi
+}
+
+startServer() {
+  local host_port=" -gamePort $VRisingHost_Port"
+  local host_query_port=" -queryPort $VRisingHost_QueryPort"
+  cd "$server_path"
+  info "Starting V Rising Dedicated Server with name $ServerName"
+  info "Trying to remove /tmp/.X0-lock"
+  rm /tmp/.X0-lock
+  info "Starting Xvfb"
+  Xvfb :0 -screen 0 1024x768x16 &
+  info "Launching wine64 V Rising { Name: $ServerName, SaveName: $WorldName, Port: $VRisingHost_Port, QueryPort: $VRisingHost_QueryPort }"
+  DISPLAY=:0.0 wine64 "$server_path/VRisingServer.exe" -persistentDataPath $data_path -serverName "$ServerName" -saveName "$WorldName" -logFile "$data_path/VRisingServer.log" "$host_port" "$host_query_port"
+  /usr/bin/tail -f "$data_path/VRisingServer.log"
+}
+
+main

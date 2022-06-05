@@ -1,0 +1,27 @@
+#!/bin/bash
+
+. /usr/local/etc/vrising/defaults
+. /usr/local/etc/vrising/common
+
+main() {
+  local api_response
+  local download_url
+  local remote_updated_at
+
+  if ! api_response=$(curl -sfSL -H "accept: application/json" "https://v-rising.thunderstore.io/api/experimental/package/BepInEx/BepInExPack_V_Rising/"); then
+      fatal "Error: could not retrieve BepInEx release info from Thunderstore.io API"
+  fi
+  download_url=$(jq -r  ".latest.download_url" <<< "$api_response" )
+  remote_updated_at=$(jq -r  ".date_updated" <<< "$api_response" )
+
+  check_for_mod_update \
+      "$download_url" \
+      "$remote_updated_at" \
+      "$bepinex_zipfile" \
+      "$bepinex_download_path" \
+      "extracted/BepInExPack_V_Rising" \
+      "$server_path" \
+      "BepInEx"
+}
+
+main

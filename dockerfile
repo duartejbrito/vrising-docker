@@ -4,12 +4,14 @@ LABEL maintainer="Duarte 'SyTeR' Brito"
 VOLUME ["/mnt/vrising/server", "/mnt/vrising/data"]
 
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN apt update -y && \
-    apt-get upgrade -y && \
-    apt-get install -y  apt-utils && \
-    apt-get install -y  software-properties-common tzdata && \
-    add-apt-repository multiverse && \
+RUN groupadd -g "${PGID:-0}" -o vrising && \
+    useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home vrising && \
     dpkg --add-architecture i386 && \
+    apt update -y && \
+    apt-get upgrade -y && \
+    apt-get install -y apt-utils && \
+    apt-get install -y software-properties-common tzdata curl unzip rsync && \
+    add-apt-repository multiverse && \
     apt update -y && \
     apt-get upgrade -y 
 
@@ -31,6 +33,11 @@ RUN rm -rf /var/lib/apt/lists/* && \
     apt clean && \
     apt autoremove -y
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-CMD ["/entrypoint.sh"]
+RUN 
+
+COPY entrypoint /usr/local/sbin/
+COPY bepinex-updater /usr/local/bin/
+COPY defaults /usr/local/etc/vrising/
+COPY common /usr/local/etc/vrising/
+RUN chmod +x /usr/local/sbin/entrypoint
+CMD ["/usr/local/sbin/entrypoint"]
