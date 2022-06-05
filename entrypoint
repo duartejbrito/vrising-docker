@@ -9,14 +9,15 @@ main() {
   install_vrising
   handleHostSettings
   handleGameSettings
-  handleBepinex
+  write_adminlist
+  # handleBepinex
   startServer
 }
 
 apply_permissions() {
   mkdir -p /root/.steam
   chmod -R 777 /root/.steam
-  
+
   info "Setting uid:gid of vrising to $PUID:$PGID"
   groupmod -g "${PGID}" -o vrising
   #usermod -u "${PUID}" -o -g valheim valheim
@@ -72,12 +73,12 @@ handleGameSettings() {
   done
 }
 
-handleBepinex() {
-  info "Handling Bepinex"
-  if [ "$BEPINEX" = true ]; then
-    "$bepinex_updater"
-  fi
-}
+# handleBepinex() {
+#   info "Handling Bepinex"
+#   if [ "$BEPINEX" = true ]; then
+#     "$bepinex_updater"
+#   fi
+# }
 
 startServer() {
   local host_port=" -gamePort $VRisingHost_Port"

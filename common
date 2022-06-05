@@ -53,6 +53,25 @@ printline() {
   fi
 }
 
+write_adminlist() {
+  write_serverlist admin "$AdminList_Ids"
+}
+
+write_serverlist() {
+  local type
+  local id_list
+  local list_file
+  type=$1
+  id_list=$2
+  list_file="${server_path}/VRisingServer_Data/StreamingAssets/Settings/${type}list.txt"
+
+  if [ -n "$id_list" ]; then
+    debug "Writing $list_file"
+    echo "// List $type players ID  ONE per line" > "$list_file"
+    echo "$id_list" | sed -e "s/ \\+/\\n/g" >> "$list_file"
+  fi
+}
+
 check_for_mod_update() {
   local download_url="$1"
   local remote_updated_at="$2"

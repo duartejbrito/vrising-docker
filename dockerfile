@@ -23,7 +23,7 @@ RUN useradd -m steam && cd /home/steam && \
     apt install -y steam steamcmd && \
     ln -s /usr/games/steamcmd /usr/bin/steamcmd    
 
-RUN apt install -y wine 
+RUN apt install -y wine
 
 RUN apt install -y xserver-xorg xvfb
 
@@ -36,8 +36,9 @@ RUN rm -rf /var/lib/apt/lists/* && \
 RUN 
 
 COPY entrypoint /usr/local/sbin/
-COPY bepinex-updater /usr/local/bin/
+# COPY bepinex-updater /usr/local/bin/
 COPY defaults /usr/local/etc/vrising/
 COPY common /usr/local/etc/vrising/
-RUN chmod +x /usr/local/sbin/entrypoint /usr/local/bin/bepinex-*
+# RUN chmod +x /usr/local/sbin/entrypoint /usr/local/bin/bepinex-*^
+RUN chmod +x /usr/local/sbin/entrypoint
 CMD ["/usr/local/sbin/entrypoint"]
