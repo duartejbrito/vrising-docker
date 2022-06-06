@@ -39,6 +39,7 @@ COPY entrypoint /usr/local/sbin/
 COPY bepinex-updater /usr/local/bin/
 COPY defaults /usr/local/etc/vrising/
 COPY common /usr/local/etc/vrising/
-RUN chmod +x /usr/local/sbin/entrypoint /usr/local/bin/bepinex-*
-# RUN chmod +x /usr/local/sbin/entrypoint
+
+RUN chmod +x /usr/local/sbin/entrypoint /usr/local/bin/bepinex-updater
+
 CMD ["/usr/local/sbin/entrypoint"]

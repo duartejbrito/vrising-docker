@@ -6,12 +6,6 @@ data_path=/mnt/vrising/data
 # BepInEx Mod
 bepinex_updater=/usr/local/bin/bepinex-updater
 bepinex_download_path=$server_path/dl/bepinex    # BepInEx download directory
-# bepinex_install_path=/opt/valheim/bepinex        # BepInEx installation directory
-# bepinex_config_path="/config/bepinex"
-# bepinex_mergefile="$bepinex_download_path/merge" # Signaling file created by valheim-updater
-#                                                  # that tells bepinex-updater that Valheim
-#                                                  # server was updated and needs to be merged
-#                                                  # with BepInEx
 bepinex_zipfile=BepInEx.zip                      # Name of the BepInEx archive
 
 # log levels
