@@ -11,6 +11,6 @@ WorldName=${WorldName:-world1}
 VRisingHost_Port=${VRisingHost_Port:-27015}
 VRisingHost_QueryPort=${VRisingHost_QueryPort:-27016}
 
-# BEPINEX=${BEPINEX:-false}
+BEPINEX=${BEPINEX:-false}
 
 AdminList_Ids=${AdminList_Ids:-}
