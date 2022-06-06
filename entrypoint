@@ -10,7 +10,7 @@ main() {
   handleHostSettings
   handleGameSettings
   write_adminlist
-  # handleBepinex
+  handleBepinex
   startServer
 }
 
@@ -73,12 +73,12 @@ handleGameSettings() {
   done
 }
 
-# handleBepinex() {
-#   info "Handling Bepinex"
-#   if [ "$BEPINEX" = true ]; then
-#     "$bepinex_updater"
-#   fi
-# }
+handleBepinex() {
+  info "Handling Bepinex"
+  if [ "$BEPINEX" = true ]; then
+    "$bepinex_updater"
+  fi
+}
 
 startServer() {
   local host_port=" -gamePort $VRisingHost_Port"
@@ -90,7 +90,7 @@ startServer() {
   info "Starting Xvfb"
   Xvfb :0 -screen 0 1024x768x16 &
   info "Launching wine64 V Rising { Name: $ServerName, SaveName: $WorldName, Port: $VRisingHost_Port, QueryPort: $VRisingHost_QueryPort }"
-  DISPLAY=:0.0 wine64 "$server_path/VRisingServer.exe" -persistentDataPath $data_path -serverName "$ServerName" -saveName "$WorldName" -logFile "$data_path/VRisingServer.log" "$host_port" "$host_query_port"
+  DISPLAY=:0.0 WINEDLLOVERRIDES="winhttp=n,b" wine64 "$server_path/VRisingServer.exe" -persistentDataPath $data_path -serverName "$ServerName" -saveName "$WorldName" -logFile "$data_path/VRisingServer.log" "$host_port" "$host_query_port"
   /usr/bin/tail -f "$data_path/VRisingServer.log"
 }
 
