@@ -1,14 +1,40 @@
 version: "3.1"
 services: 
-  vrising:
+  vrising-server:
     container_name: vrising-server
     image: syter/vrising-docker:latest
     environment:
+      #General
       - TZ=Europe/Lisbon
-      - ServerName=SyteRVRisingServer
+      - ServerName=SyteR VRising Server
+      #Host Settings
       - VRisingHost_Name="SyTeR VRising Server"
       - VRisingHost_Port=27015
       - VRisingHost_QueryPort=27016
+      - VRisingHost_GameSettingsPreset="Level70PvE"
+      - VRisingHost_Password="changeme"
+      #Game Settings
+      - VRisingGame_ClanSize=10
+      #BepInEx
+      - Mod_BepInEx_Name=BepInExPack_V_Rising
+      - Mod_BepInEx_Namespace=BepInEx
+      - Mod_BepInEx_Source=/BepInExPack_V_Rising/
+      - Mod_BepInEx_Destination=/
+      #Wetstone
+      - Mod_Wetstone_Name=Wetstone
+      - Mod_Wetstone_Namespace=molenzwiebel
+      - Mod_Wetstone_Source=/
+      - Mod_Wetstone_Destination=/BepInEx/plugins/Wetstone
+      #QuickStash
+      - Mod_QuickStash_Name=QuickStash
+      - Mod_QuickStash_Namespace=Elmegaard
+      - Mod_QuickStash_Source=/
+      - Mod_QuickStash_Destination=/BepInEx/WetstonePlugins
+      #ChatCommands
+      - Mod_ChatCommands_Name=ChatCommands
+      - Mod_ChatCommands_Namespace=Nopey
+      - Mod_ChatCommands_Source=/
+      - Mod_ChatCommands_Destination=/BepInEx/WetstonePlugins
     volumes: 
       - vrising-server:/mnt/vrising/server
       - vrising-data:/mnt/vrising/data

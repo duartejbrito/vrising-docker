@@ -4,42 +4,41 @@ LABEL maintainer="Duarte 'SyTeR' Brito"
 VOLUME ["/mnt/vrising/server", "/mnt/vrising/data"]
 
 ARG DEBIAN_FRONTEND="noninteractive"
-RUN groupadd -g "${PGID:-0}" -o vrising && \
-    useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home vrising && \
-    dpkg --add-architecture i386 && \
-    apt update -y && \
-    apt-get upgrade -y && \
-    apt-get install -y apt-utils && \
-    apt-get install -y software-properties-common tzdata curl unzip rsync && \
-    add-apt-repository multiverse && \
-    apt update -y && \
-    apt-get upgrade -y 
 
-RUN useradd -m steam && cd /home/steam && \
-    echo steam steam/question select "I AGREE" | debconf-set-selections && \
-    echo steam steam/license note '' | debconf-set-selections && \
-    apt purge steam steamcmd && \
-    apt install -y gdebi-core libgl1-mesa-glx:i386 wget && \
-    apt install -y steam steamcmd && \
-    ln -s /usr/games/steamcmd /usr/bin/steamcmd    
+# create user and set PGID/PUID
+# RUN groupadd -g "${PGID:-0}" -o vrising && \
+#   useradd -g "${PGID:-0}" -u "${PUID:-0}" -o --create-home vrising
 
-RUN apt install -y wine
+# install common packages
+RUN apt update && \
+  apt-get install -y wget unzip curl jq rsync
 
-RUN apt install -y xserver-xorg xvfb
+# install wine xvfb
+RUN dpkg --add-architecture i386 && \
+  wget -nc https://dl.winehq.org/wine-builds/winehq.key && \
+  mv winehq.key /usr/share/keyrings/winehq-archive.key && \
+  wget -nc https://dl.winehq.org/wine-builds/ubuntu/dists/focal/winehq-focal.sources && \
+  mv winehq-focal.sources /etc/apt/sources.list.d/ && \
+  apt update && \
+  apt install -y winehq-stable xvfb
 
-RUN apt install -y jq
+# install steamcmd
+RUN mkdir -p /root/.wine/drive_c/steamcmd && \
+  wget https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -P /root/.wine/drive_c/steamcmd/ && \
+  cd /root/.wine/drive_c/steamcmd/ && \
+  unzip steamcmd.zip
 
+# cleanup
 RUN rm -rf /var/lib/apt/lists/* && \
-    apt clean && \
-    apt autoremove -y
+  apt clean && \
+  apt autoremove -y
 
-RUN 
-
+# copy scripts
 COPY entrypoint /usr/local/sbin/
-COPY bepinex-updater /usr/local/bin/
 COPY defaults /usr/local/etc/vrising/
 COPY common /usr/local/etc/vrising/
 
-RUN chmod +x /usr/local/sbin/entrypoint /usr/local/bin/bepinex-updater
+# permissions
+RUN chmod +x /usr/local/sbin/entrypoint
 
 CMD ["/usr/local/sbin/entrypoint"]

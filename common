@@ -3,11 +3,6 @@
 server_path=/mnt/vrising/server
 data_path=/mnt/vrising/data
 
-# BepInEx Mod
-bepinex_updater=/usr/local/bin/bepinex-updater
-bepinex_download_path=$server_path/dl/bepinex    # BepInEx download directory
-bepinex_zipfile=BepInEx.zip                      # Name of the BepInEx archive
-
 # log levels
 debug=50
 info=40
@@ -15,7 +10,7 @@ warn=30
 error=20
 critical=10
 fatal=5
-log_level=${log_level:-$debug}
+log_level=${log_level:-$info}
 
 debug()    { logstd $debug    "DEBUG - [$$] - $*"; }
 info()     { logstd $info     "INFO - $*"; }
@@ -47,6 +42,72 @@ printline() {
   fi
 }
 
+start_wine() {
+  debug "Starting wine"
+  if [ ! -d /root/.wine ]; then
+    debug "wine is not ready, initializing..."
+    WINEARCH=win64 winecfg > /dev/null 2>&1
+    sleep 5
+    debug "wine initialized"
+  fi
+}
+
+apply_permissions() {
+  debug "Applying permissions"
+  mkdir -p /root/.steam
+  chmod -R 777 /root/.steam
+  mkdir "$data_path/Settings"
+}
+
+configure_timezone() {
+  debug "Setup timezone"
+  export TZ
+  if [ ! -f "/usr/share/zoneinfo/$TZ" ]; then
+      warn "Unknown timezone $TZ - defaulting to Etc/UTC"
+      TZ="Etc/UTC"
+  fi
+  ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
+  echo "$TZ" > /etc/timezone
+  dpkg-reconfigure -f noninteractive tzdata
+  info "Setting timezone $TZ"
+}
+
+install_server() {
+  debug "Install server"
+  if [ ! -e "/root/.wine/drive_c/steamcmd/steaminstalled.txt" ]; then
+    info "Updating V-Rising Dedicated Server files..."
+    wine "C:/steamcmd/steamcmd.exe" +force_install_dir "Z:$server_path" +login anonymous +app_update 1829350 validate +quit
+    touch /root/.wine/drive_c/steamcmd/steaminstalled.txt
+  fi
+}
+
+handleHostSettings() {
+  debug "Handling Server Host Settings"
+  handleSettings "ServerHostSettings" ${!VRisingHost_@}
+}
+
+handleGameSettings() {
+  debug "Handling Server Game Settings"
+  handleSettings "ServerGameSettings" ${!VRisingGame_@}
+}
+
+handleSettings() {
+  local name=$1
+  shift
+
+  if [ ! -f "$data_path/Settings/$name.json" ]; then
+    info "$data_path/Settings/$name.json not found. Copying default file."
+    cp "$server_path/VRisingServer_Data/StreamingAssets/Settings/$name.json" "$data_path/Settings/"
+  fi
+  
+  for var in "$@"; do
+    IFS='_' read -r -a path <<< "$var"
+    path=${path[@]:1}
+    debug "Overrinding $name.${path// /.}: ${!var}"
+    cat <<< $( jq ".${path// /.} = ${!var}" "$data_path/Settings/$name.json" ) > "$data_path/Settings/$name.json"
+  done
+}
+
 write_adminlist() {
   write_serverlist admin "$AdminList_Ids"
 }
@@ -60,94 +121,76 @@ write_serverlist() {
   list_file="${server_path}/VRisingServer_Data/StreamingAssets/Settings/${type}list.txt"
 
   if [ -n "$id_list" ]; then
-    debug "Writing $list_file"
+    info "Writing $list_file"
     echo "// List $type players ID  ONE per line" > "$list_file"
     echo "$id_list" | sed -e "s/ \\+/\\n/g" >> "$list_file"
   fi
 }
 
-check_for_mod_update() {
-  local download_url="$1"
-  local remote_updated_at="$2"
-  local zipfile="$3"
-  local download_path="$4"
-  local extraction_path="$5"
-  local install_path="$6"
-  local mod_name="$7"
-  local local_updated_at
-  local local_installed_at
-
-  mkdir -p "$download_path" "$install_path"
-  cd "$download_path" || fatal "Could not cd $download_path"
-  if [ -f "$zipfile" ] && [ -f "$zipfile.updated_at" ] && [ -f "$zipfile.installed_at" ]; then
-    local_updated_at=$(< "$zipfile.updated_at")
-    local_installed_at=$(< "$zipfile.installed_at")
-    if [ "$local_updated_at" = "$remote_updated_at" ] && [ "$local_updated_at" = "$local_installed_at" ]; then
-      debug "Local $mod_name archive is identical to remote archive and was successfully installed - no update required"
-    else
-      info "Local $mod_name archive with update date $local_updated_at differs from remote date $remote_updated_at or failed to successfully install - updating"
-      prepare_mod "$download_url" "$remote_updated_at" "$download_path/$zipfile"
+handle_mods() {
+  debug "Handling Mods"
+  local modsToInstall=()
+  local mod_var_name
+  for mod_envs in ${!Mod_@}; do
+    mod_var_name="$(cut -d'_' -f1 <<<"$mod_envs")_$(cut -d'_' -f2 <<<"$mod_envs")"
+    if [[ ! " ${modsToInstall[*]} " =~ " ${mod_var_name} " ]]; then
+      modsToInstall+=" ${mod_var_name}"
     fi
-  else
-    info "Fresh $mod_name install"
-    prepare_mod "$download_url" "$remote_updated_at" "$download_path/$zipfile"
+  done
+
+  local modName
+  local modNamespace
+  local modSource
+  local modDestination
+  for mod in ${modsToInstall[@]}; do
+    modName=$mod\_Name
+    modNamespace=$mod\_Namespace
+    modSource=$mod\_Source
+    modDestination=$mod\_Destination
+    
+    debug "Mod found"
+    debug "${modName}: ${!modName}"
+    debug "${modNamespace}: ${!modNamespace}"
+    debug "${modSource}: ${!modSource}"
+    debug "${modDestination}: ${!modDestination}"
+    modDownloadUrl=$(download_url_mod_store ${!modName} ${!modNamespace})
+
+    debug "DownloadUrl: ${modDownloadUrl}"
+    download_extract_sync_mod_store ${!modName} ${modDownloadUrl} ${!modSource} ${!modDestination}
+    info "${!modName} mod installed on $server_path${!modDestination}"
+  done
+}
+
+download_url_mod_store() {
+  local modName=$1
+  local modNamespace=$2
+  local api_response
+  local download_url
+
+  if ! api_response=$(curl -sfSL -H "accept: application/json" "https://v-rising.thunderstore.io/api/experimental/package/${modNamespace}/${modName}/"); then
+    fatal "Error: could not retrieve ${modNamespace}/${modName} release info from Thunderstore.io API"
   fi
-
-  check_merge "$download_path" "$zipfile" "$install_path" "$extraction_path" "$mod_name"
+  download_url=$(jq -r  ".latest.download_url" <<< "$api_response" )
+  echo "$download_url"
 }
 
-prepare_mod() {
-  local download_url="$1"
-  local updated_at="$2"
-  local zipfile="$3"
-  download_mod "$download_url" "$updated_at" "$zipfile"
-}
+download_extract_sync_mod_store() {
+  local modName=$1
+  local modDownloadUrl=$2
+  local modSource=$3
+  local modDestination=$4
 
-download_mod() {
-  local download_url="$1"
-  local updated_at="$2"
-  local download_path="$3"
-  debug "Downloading $download_url to $download_path"
-  curl -sfSL -o "$download_path" "$download_url" \
-    && echo "$updated_at" > "$download_path.updated_at"
-}
+  local download_path=/tmp/dl/mods/$modName
+  local zipfile=$modName.zip
+  local archive_file="$download_path/$zipfile"
+  mkdir -p "$download_path"
+  curl -sfSL -o "$archive_file" "$modDownloadUrl"
 
-check_merge() {
-    local download_path=$1
-    local zipfile=$2
-    local install_path=$3
-    local extraction_path=$4
-    local mod_name=$5
+  local extracted_path="$download_path/extracted"
+  rm -rf "$extracted_path"
+  mkdir -p "$extracted_path"
+  unzip -q -d "$extracted_path/" "$archive_file"
 
-    info "VRising dedicated server or $mod_name mod got updated - extracting and merging installation files"
-    (set -e; extract_archive "$download_path" "$zipfile" && merge_mod "$install_path" "$download_path/$extraction_path")
-    if [ $? -eq 0 ]; then
-      debug "Successfully installed $mod_name mod"
-      cp -f "$zipfile.updated_at" "$zipfile.installed_at"
-    else
-      error "Failed to extract and install $mod_name - retrying later"
-    fi
-}
-
-extract_archive() {
-  local archive_path="$1"
-  local archive_file="$2"
-  cd "$archive_path" || fatal "Could not cd $archive_path"
-  debug "Extracting downloaded ZIP archive"
-  rm -rf extracted
-  mkdir -p extracted
-  unzip -d extracted/ "$archive_file"
-}
-
-merge_mod() {
-  local mod_install_path="$1"
-  local mod_download_path="$2"
-
-  info "mod_install_path: $mod_install_path"
-  info "mod_download_path: $mod_download_path"
-
-  rsync -a --itemize-changes "$mod_download_path/" "$mod_install_path"
-  mkdir -p "$mod_install_path/BepInEx/plugins"
-
-  rm -rf "$mod_install_path/dl"
+  mkdir -p "$server_path$modDestination"
+  rsync -q -a --itemize-changes "$extracted_path$modSource" "$server_path$modDestination"
 }
