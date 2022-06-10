@@ -3,6 +3,8 @@
 server_path=/mnt/vrising/server
 data_path=/mnt/vrising/data
 
+rcon_client_version="0.10.2"
+
 # log levels
 debug=50
 info=40
@@ -193,4 +195,21 @@ download_extract_sync_mod_store() {
 
   mkdir -p "$server_path$modDestination"
   rsync -q -a --itemize-changes "$extracted_path$modSource" "$server_path$modDestination"
+}
+
+install_rcon_client() {
+  info "Download rcon-cli version $rcon_client_version"
+  local download_path=/tmp/dl/rcon-cli
+  local zipfile=rcon-cli.tar.gz
+  local archive_file="$download_path/$zipfile"
+
+  mkdir -p "$download_path"
+  curl -sfSL -o "$archive_file" "https://github.com/gorcon/rcon-cli/releases/download/v$rcon_client_version/rcon-$rcon_client_version-i386_linux.tar.gz"
+
+  local extracted_path="$download_path/extracted"
+  rm -rf "$extracted_path"
+  mkdir -p "$extracted_path"
+  tar -xf "$archive_file" -C "$extracted_path/"
+
+  rsync -q -a --itemize-changes "$extracted_path/rcon-$rcon_client_version-i386_linux/" "/rcon/"
 }

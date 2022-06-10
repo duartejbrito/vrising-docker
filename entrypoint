@@ -13,17 +13,20 @@ main() {
   handleGameSettings
   write_adminlist
   handle_mods
+  install_rcon_client
   startServer
 }
 
 startServer() {
+  local host_server_name=" -serverName $VRisingHost_Name"
+  local host_save_name=" -saveName $VRisingHost_SaveName"
   local host_port=" -gamePort $VRisingHost_Port"
   local host_query_port=" -queryPort $VRisingHost_QueryPort"
 
-  info "Starting V Rising Dedicated Server with name $ServerName"
+  info "Starting $VRisingHost_Name server with save name $VRisingHost_SaveName exposed on port $VRisingHost_Port, and query port $VRisingHost_QueryPort. Logs will be on $data_path/VRisingServer.log"
   Xvfb :0 -screen 0 1024x768x16 & \
   sleep 5
-  DISPLAY=:0.0 WINEDLLOVERRIDES="winhttp=n,b" wine "Z:$server_path/VRisingServer.exe" -persistentDataPath $data_path -serverName "$ServerName" -saveName "$WorldName" -logFile "Z:$data_path/VRisingServer.log" "$host_port" "$host_query_port"
+  DISPLAY=:0.0 WINEDLLOVERRIDES="winhttp=n,b" wine "Z:$server_path/VRisingServer.exe" -persistentDataPath $data_path "$host_server_name" "$host_save_name" -logFile "Z:$data_path/VRisingServer.log" "$host_port" "$host_query_port"
   /usr/bin/tail -f "$data_path/VRisingServer.log"
 }
 

@@ -6,13 +6,12 @@ services:
     environment:
       #General
       - TZ=Europe/Lisbon
-      - ServerName=SyteR VRising Server
+      - AdminList_Ids=steamid1 steamid2
       #Host Settings
-      - VRisingHost_Name="SyTeR VRising Server"
-      - VRisingHost_Port=27015
-      - VRisingHost_QueryPort=27016
       - VRisingHost_GameSettingsPreset="Level70PvE"
       - VRisingHost_Password="changeme"
+      - VRisingHost_Rcon_Enabled=true
+      - VRisingHost_Rcon_Password="changeme"
       #Game Settings
       - VRisingGame_ClanSize=10
       #BepInEx
